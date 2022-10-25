@@ -23,15 +23,16 @@ from transformers import (
     TrainingArguments,
     set_seed
 )
+
 from transformers.file_utils import is_offline_mode
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
 
-from src.contrastive.models.modeling import ContrastivePretrainModel
-from src.contrastive.data.datasets import ContrastivePretrainDatasetDeepmatcher
-from src.contrastive.data.data_collators import DataCollatorContrastivePretrainDeepmatcher
-from src.contrastive.models.metrics import compute_metrics_bce
+from src.finetuning.open_book.contrastive_product_matching.src.contrastive.models.modeling import ContrastivePretrainModel
+from src.finetuning.open_book.contrastive_product_matching.src.contrastive.data.datasets import ContrastivePretrainDatasetDeepmatcher
+from src.finetuning.open_book.contrastive_product_matching.src.contrastive.data.data_collators import DataCollatorContrastivePretrainDeepmatcher
+from src.finetuning.open_book.contrastive_product_matching.src.contrastive.models.metrics import compute_metrics_bce
 
 from transformers import EarlyStoppingCallback
 
@@ -227,6 +228,7 @@ def main():
             checkpoint = last_checkpoint
         train_result = trainer.train(resume_from_checkpoint=checkpoint)
         trainer.save_model()  # Saves the tokenizer too for easy upload
+        train_dataset.tokenizer.save_pretrained(training_args.output_dir)
 
         metrics = train_result.metrics
         max_train_samples = (

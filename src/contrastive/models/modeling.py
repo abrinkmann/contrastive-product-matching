@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.nn import BCEWithLogitsLoss
 
 from transformers import AutoModel, AutoConfig
-from src.contrastive.models.loss import SupConLoss
+from src.finetuning.open_book.contrastive_product_matching.src.contrastive.models.loss import SupConLoss
 
 def mean_pooling(model_output, attention_mask):
     token_embeddings = model_output[0] #First element of model_output contains all token embeddings
@@ -53,7 +53,7 @@ class ContrastiveSelfSupervisedPretrainModel(nn.Module):
 
             for num in range(self.num_augments-1):
                 output_right = self.encoder(input_ids, attention_mask)
-                output_right = mean_pooling(output_right, attention).unsqueeze(1)
+                output_right = mean_pooling(output_right, attention_mask).unsqueeze(1)
                 additional_outputs.append(output_right)
         else:
             output_left = self.encoder(input_ids, attention_mask)['pooler_output'].unsqueeze(1)
@@ -108,6 +108,43 @@ class ContrastivePretrainModel(nn.Module):
         loss = self.criterion(output, labels)
 
         return ((loss,))
+
+
+class ContrastiveModel(nn.Module):
+
+    def __init__(self, len_tokenizer, model='huawei-noah/TinyBERT_General_4L_312D', pool=True, proj='mlp',
+                 temperature=0.07):
+        """Model used for application"""
+        super().__init__()
+
+        self.pool = pool
+        self.proj = proj
+        self.temperature = temperature
+        self.criterion = SupConLoss(self.temperature)
+
+        self.encoder = BaseEncoder(len_tokenizer, model)
+        self.config = self.encoder.transformer.config
+
+    def forward(self, input_ids, attention_mask):
+
+        if self.pool:
+            output = self.encoder(input_ids, attention_mask)
+            output = mean_pooling(output, attention_mask)
+
+            #output_right = self.encoder(input_ids_right, attention_mask_right)
+            #output_right = mean_pooling(output_right, attention_mask_right)
+        else:
+            output = self.encoder(input_ids, attention_mask)['pooler_output']
+            #output_right = self.encoder(input_ids_right, attention_mask_right)['pooler_output']
+
+        #output = torch.cat((output_left.unsqueeze(1), output_right.unsqueeze(1)), 1)
+
+        output = F.normalize(output, dim=-1)
+
+        # Do not calculate loss - only for application
+        loss = 0
+
+        return (loss, output)
 
 class ContrastivePretrainHead(nn.Module):
 
@@ -183,7 +220,10 @@ class ContrastiveClassifierModel(nn.Module):
 
         proj_output = self.classification_head(output)
 
-        loss = self.criterion(proj_output.view(-1), labels.float())
+        if labels is not None:
+            loss = self.criterion(proj_output.view(-1), labels.float())
+        else:
+            loss = 0
 
         proj_output = torch.sigmoid(proj_output)
 

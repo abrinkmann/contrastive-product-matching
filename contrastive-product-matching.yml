@@ -1,4 +1,4 @@
-name: contrastive-product-matching
+name: contrastive_product_matching
 channels:
   - pytorch
   - nvidia
@@ -409,4 +409,4 @@ dependencies:
     - tokenizers==0.10.3
     - transformers==4.12.5
     - yarl==1.6.3
-prefix: /home/rpeeters/anaconda3/envs/contrastive-product-matching
+prefix: /home/rpeeters/anaconda3/envs/contrastive_product_matching

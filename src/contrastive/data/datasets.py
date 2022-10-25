@@ -1,4 +1,9 @@
+import logging
+
 import numpy as np
+
+from src.strategy.open_book.entity_serialization import EntitySerializer
+
 np.random.seed(42)
 import random
 random.seed(42)
@@ -16,8 +21,8 @@ import torch.nn.functional as F
 
 from transformers import AutoTokenizer, AutoConfig
 
-import nlpaug.augmenter.word as naw
-import nlpaug.augmenter.char as nac
+#import nlpaug.augmenter.word as naw
+#import nlpaug.augmenter.char as nac
 from sklearn.preprocessing import LabelEncoder
 
 from pdb import set_trace
@@ -41,65 +46,71 @@ def serialize_sample_lspc(sample):
     return string
 
 def serialize_sample_abtbuy(sample):
-    string = ''
-    string = f'{string}[COL] brand [VAL] {" ".join(sample[f"brand"].split())}'.strip()
-    string = f'{string} [COL] title [VAL] {" ".join(sample[f"name"].split())}'.strip()
-    string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price"]).split())}'.strip()
-    string = f'{string} [COL] description [VAL] {" ".join(sample[f"description"].split()[:100])}'.strip()
+    entity_serializer = EntitySerializer('abt-buy')
+    string = entity_serializer.convert_to_str_representation(sample.to_dict())
+    # string = ''
+    # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"brand"].split())}'.strip()
+    # string = f'{string} [COL] title [VAL] {" ".join(sample[f"name"].split())}'.strip()
+    # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price"]).split())}'.strip()
+    # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description"].split()[:100])}'.strip()
 
     return string
 
 def serialize_sample_amazongoogle(sample):
-    string = ''
-    string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer"].split())}'.strip()
-    string = f'{string} [COL] title [VAL] {" ".join(sample[f"title"].split())}'.strip()
-    string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price"]).split())}'.strip()
-    string = f'{string} [COL] description [VAL] {" ".join(sample[f"description"].split()[:100])}'.strip()
+    entity_serializer = EntitySerializer('amazon-google')
+    dict_sample = sample.to_dict()
+    dict_sample['name'] = dict_sample['title']
+    string = entity_serializer.convert_to_str_representation(dict_sample)
+    # string = ''
+    # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer"].split())}'.strip()
+    # string = f'{string} [COL] title [VAL] {" ".join(sample[f"title"].split())}'.strip()
+    # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price"]).split())}'.strip()
+    # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description"].split()[:100])}'.strip()
 
     return string
 
-# Class for Data Augmentation
-class Augmenter():
-    def __init__(self, aug):
-
-        stopwords = ['[COL]', '[VAL]', 'title', 'name', 'description', 'manufacturer', 'brand', 'specTableContent']
-
-        aug_typo = nac.KeyboardAug(stopwords=stopwords, aug_char_p=0.1, aug_word_p=0.1)
-        aug_swap = naw.RandomWordAug(action="swap", stopwords=stopwords, aug_p=0.1)
-        aug_del = naw.RandomWordAug(action="delete", stopwords=stopwords, aug_p=0.1)
-        aug_crop = naw.RandomWordAug(action="crop", stopwords=stopwords, aug_p=0.1)
-        aug_sub = naw.RandomWordAug(action="substitute", stopwords=stopwords, aug_p=0.1)
-        aug_split = naw.SplitAug(stopwords=stopwords, aug_p=0.1)
-
-        aug = aug.strip('-')
-
-        if aug == 'all':
-            self.augs = [aug_typo, aug_swap, aug_split, aug_sub, aug_del, aug_crop, None]
-        
-        if aug == 'typo':
-            self.augs = [aug_typo, None]
-
-        if aug == 'swap':
-            self.augs = [aug_swap, None]
-
-        if aug == 'delete':
-            self.augs = [aug_del, None]
-
-        if aug == 'crop':
-            self.augs = [aug_crop, None]
-
-        if aug == 'substitute':
-            self.augs = [aug_sub, None]
-
-        if aug == 'split':
-            self.augs = [aug_split, None]
-
-    def apply_aug(self, string):
-        aug = random.choice(self.augs)
-        if aug is None:
-            return string
-        else:
-            return aug.augment(string)
+# # Class for Data Augmentation
+# class Augmenter():
+#     def __init__(self, aug):
+#
+#         stopwords = ['[COL]', '[VAL]', 'title', 'name', 'description', 'manufacturer', 'brand', 'specTableContent']
+#
+#         aug_typo = nac.KeyboardAug(stopwords=stopwords, aug_char_p=0.1, aug_word_p=0.1)
+#         aug_swap = naw.RandomWordAug(action="swap", stopwords=stopwords, aug_p=0.1)
+#         aug_del = naw.RandomWordAug(action="delete", stopwords=stopwords, aug_p=0.1)
+#         aug_crop = naw.RandomWordAug(action="crop", stopwords=stopwords, aug_p=0.1)
+#         aug_sub = naw.RandomWordAug(action="substitute", stopwords=stopwords, aug_p=0.1)
+#         aug_split = naw.SplitAug(stopwords=stopwords, aug_p=0.1)
+#
+#         aug = aug.strip('-')
+#
+#         if aug == 'all':
+#             self.augs = [aug_typo, aug_swap, aug_split, aug_sub, aug_del, aug_crop, None]
+#
+#         if aug == 'typo':
+#             self.augs = [aug_typo, None]
+#
+#         if aug == 'swap':
+#             self.augs = [aug_swap, None]
+#
+#         if aug == 'delete':
+#             self.augs = [aug_del, None]
+#
+#         if aug == 'crop':
+#             self.augs = [aug_crop, None]
+#
+#         if aug == 'substitute':
+#             self.augs = [aug_sub, None]
+#
+#         if aug == 'split':
+#             self.augs = [aug_split, None]
+#
+#     def apply_aug(self, string):
+#         aug = random.choice(self.augs)
+#         if aug is None:
+#             return string
+#         else:
+#             return aug.augment(string)
 
 # Dataset class for general Contrastive Pre-training for WDC computers
 class ContrastivePretrainDataset(torch.utils.data.Dataset):
@@ -111,7 +122,8 @@ class ContrastivePretrainDataset(torch.utils.data.Dataset):
         self.aug = aug
 
         if self.aug:
-            self.augmenter = Augmenter(self.aug)
+            logging.warning('AUGMENTATION IS DEACTIVED!')
+        #     self.augmenter = Augmenter(self.aug)
 
         data = pd.read_pickle(path)
 
@@ -145,9 +157,9 @@ class ContrastivePretrainDataset(torch.utils.data.Dataset):
         pos = selection.sample(1).iloc[0].copy()
 
         # apply augmentation if set
-        if self.aug:
-            example['features'] = self.augmenter.apply_aug(example['features'])
-            pos['features'] = self.augmenter.apply_aug(pos['features'])
+        # if self.aug:
+        #     example['features'] = self.augmenter.apply_aug(example['features'])
+        #     pos['features'] = self.augmenter.apply_aug(pos['features'])
 
         return (example, pos)
 
@@ -185,8 +197,8 @@ class ContrastivePretrainDatasetDeepmatcher(torch.utils.data.Dataset):
         self.dataset = dataset
         self.aug = aug
 
-        if self.aug:
-            self.augmenter = Augmenter(self.aug)
+        # if self.aug:
+        #     self.augmenter = Augmenter(self.aug)
 
         data = pd.read_pickle(path)
 
@@ -352,12 +364,12 @@ class ContrastivePretrainDatasetDeepmatcher(torch.utils.data.Dataset):
         #     selection2 = selection2.drop(idx)
         pos2 = selection2.sample(1).iloc[0].copy()
 
-        # apply augmentation if set
-        if self.aug:
-            example1['features'] = self.augmenter.apply_aug(example1['features'])
-            pos1['features'] = self.augmenter.apply_aug(pos1['features'])
-            example2['features'] = self.augmenter.apply_aug(example2['features'])
-            pos2['features'] = self.augmenter.apply_aug(pos2['features'])
+        # # apply augmentation if set
+        # if self.aug:
+        #     example1['features'] = self.augmenter.apply_aug(example1['features'])
+        #     pos1['features'] = self.augmenter.apply_aug(pos1['features'])
+        #     example2['features'] = self.augmenter.apply_aug(example2['features'])
+        #     pos2['features'] = self.augmenter.apply_aug(pos2['features'])
 
         return ((example1, pos1), (example2, pos2))
 
@@ -389,8 +401,8 @@ class ContrastiveClassificationDataset(torch.utils.data.Dataset):
         self.dataset = dataset
         self.aug = aug
 
-        if self.aug:
-            self.augmenter = Augmenter(self.aug)
+        # if self.aug:
+        #     self.augmenter = Augmenter(self.aug)
 
         if dataset == 'lspc':
             data = pd.read_pickle(path)
@@ -429,9 +441,9 @@ class ContrastiveClassificationDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         example = self.data.loc[idx].copy()
 
-        if self.aug:
-            example['features_left'] = self.augmenter.apply_aug(example['features_left'])
-            example['features_right'] = self.augmenter.apply_aug(example['features_right'])
+        # if self.aug:
+        #     example['features_left'] = self.augmenter.apply_aug(example['features_left'])
+        #     example['features_right'] = self.augmenter.apply_aug(example['features_right'])
 
         return example
 
@@ -466,22 +478,39 @@ class ContrastiveClassificationDataset(torch.utils.data.Dataset):
         return string
 
     def serialize_sample_abtbuy(self, sample, side):
-        
-        string = ''
-        string = f'{string}[COL] brand [VAL] {" ".join(sample[f"brand_{side}"].split())}'.strip()
-        string = f'{string} [COL] title [VAL] {" ".join(sample[f"name_{side}"].split())}'.strip()
-        string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price_{side}"]).split())}'.strip()
-        string = f'{string} [COL] description [VAL] {" ".join(sample[f"description_{side}"].split()[:100])}'.strip()
+
+        entity_serializer = EntitySerializer('abt-buy')
+        dict_sample = sample.to_dict()
+        dict_sample['brand'] = dict_sample['brand_{}'.format(side)]
+        dict_sample['name'] = dict_sample['name_{}'.format(side)]
+        dict_sample['price'] = dict_sample['price_{}'.format(side)]
+        dict_sample['description'] = dict_sample['description_{}'.format(side)]
+        string = entity_serializer.convert_to_str_representation(dict_sample)
+        print(string)
+
+        # string = ''
+        # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"brand_{side}"].split())}'.strip()
+        # string = f'{string} [COL] title [VAL] {" ".join(sample[f"name_{side}"].split())}'.strip()
+        # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price_{side}"]).split())}'.strip()
+        # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description_{side}"].split()[:100])}'.strip()
         
 
         return string
 
     def serialize_sample_amazongoogle(self, sample, side):
-        
-        string = ''
-        string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer_{side}"].split())}'.strip()
-        string = f'{string} [COL] title [VAL] {" ".join(sample[f"title_{side}"].split())}'.strip()
-        string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price_{side}"]).split())}'.strip()
-        string = f'{string} [COL] description [VAL] {" ".join(sample[f"description_{side}"].split()[:100])}'.strip()
+
+        entity_serializer = EntitySerializer('amazon-google')
+        dict_sample = sample.to_dict()
+        dict_sample['manufacturer'] = dict_sample['manufacturer_{}'.format(side)]
+        dict_sample['name'] = dict_sample['title_{}'.format(side)]
+        dict_sample['price'] = dict_sample['price_{}'.format(side)]
+        dict_sample['description'] = dict_sample['description_{}'.format(side)]
+        string = entity_serializer.convert_to_str_representation(dict_sample)
+
+        # string = ''
+        # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer_{side}"].split())}'.strip()
+        # string = f'{string} [COL] title [VAL] {" ".join(sample[f"title_{side}"].split())}'.strip()
+        # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price_{side}"]).split())}'.strip()
+        # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description_{side}"].split()[:100])}'.strip()
 
         return string
