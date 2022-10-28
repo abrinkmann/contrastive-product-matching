@@ -15,3 +15,16 @@ def compute_metrics_bce(eval_pred):
     recall = recall_score(labels, predictions, pos_label=1, average='binary')
 
     return {"accuracy": accuracy, "f1": f1, "precision": precision, "recall": recall}
+
+def compute_metrics_soft_max(eval_pred):
+    logits, labels = eval_pred
+
+    predictions = np.argmax(logits, axis=-1).reshape(-1)
+    labels = labels.reshape(-1)
+
+    accuracy = accuracy_score(labels, predictions)
+    f1 = f1_score(labels, predictions, pos_label=1, average='binary')
+    precision = precision_score(labels, predictions, pos_label=1, average='binary')
+    recall = recall_score(labels, predictions, pos_label=1, average='binary')
+
+    return {"accuracy": accuracy, "f1": f1, "precision": precision, "recall": recall}
