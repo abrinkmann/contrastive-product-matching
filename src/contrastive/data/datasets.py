@@ -486,7 +486,6 @@ class ContrastiveClassificationDataset(torch.utils.data.Dataset):
         dict_sample['price'] = dict_sample['price_{}'.format(side)]
         dict_sample['description'] = dict_sample['description_{}'.format(side)]
         string = entity_serializer.convert_to_str_representation(dict_sample)
-        print(string)
 
         # string = ''
         # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"brand_{side}"].split())}'.strip()
