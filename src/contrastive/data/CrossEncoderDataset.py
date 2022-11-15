@@ -42,6 +42,15 @@ class CrossEncoderDataset(torch.utils.data.Dataset):
                 validation_ids = pd.read_csv(f'../../data/interim/abt-buy/abt-buy-valid.csv')
             elif dataset == 'amazon-google':
                 validation_ids = pd.read_csv(f'../../data/interim/amazon-google/amazon-google-valid.csv')
+            elif dataset == 'dblp-acm_1':
+                validation_ids = pd.read_csv('../../data/interim/dblp-acm_1/dblp-acm_1-valid.csv')
+            elif dataset == 'dblp-googlescholar':
+                validation_ids = pd.read_csv('../../data/interim/dblp-googlescholar/dblp-googlescholar-valid.csv')
+            elif dataset == 'walmart-amazon_1':
+                validation_ids = pd.read_csv('../../data/interim/walmart-amazon_1/walmart-amazon_1-valid.csv')
+            elif dataset == 'wdcproducts80cc20rnd050un':
+                validation_ids = pd.read_csv('../../data/interim/wdcproducts80cc20rnd050un/wdcproducts80cc20rnd050un-valid.csv')
+
             if self.dataset_type == 'train':
                 data = data[~data['pair_id'].isin(validation_ids['pair_id'])]
             else:
@@ -75,6 +84,14 @@ class CrossEncoderDataset(torch.utils.data.Dataset):
             #data['features_right'] = data.apply(self.serialize_sample_abtbuy, args=('right',), axis=1)
         elif self.dataset == 'amazon-google':
             data['features'] = data.apply(self.serialize_sample_amazongoogle, axis=1)
+        elif self.dataset == 'dblp-acm_1':
+            data['features'] = data.apply(self.serialize_sample_dblpacm, axis=1)
+        elif self.dataset == 'dblp-googlescholar':
+            data['features'] = data.apply(self.serialize_sample_dblpgooglescholar, axis=1)
+        elif self.dataset == 'walmart-amazon_1':
+            data['features'] = data.apply(self.serialize_sample_walmartamazon, axis=1)
+        elif self.dataset == 'wdcproducts80cc20rnd050un':
+            data['features'] = data.apply(self.serialize_sample_wdcproduct, axis=1)
             #data['features_right'] = data.apply(self.serialize_sample_amazongoogle, args=('right',), axis=1)
 
         data = data[['features', 'label']]
@@ -133,6 +150,96 @@ class CrossEncoderDataset(torch.utils.data.Dataset):
         # dict_sample['price'] = dict_sample['price_{}'.format(side)]
         # dict_sample['description'] = dict_sample['description_{}'.format(side)]
         # string = entity_serializer.convert_to_str_representation(dict_sample)
+
+        # string = ''
+        # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer_{side}"].split())}'.strip()
+        # string = f'{string} [COL] title [VAL] {" ".join(sample[f"title_{side}"].split())}'.strip()
+        # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price_{side}"]).split())}'.strip()
+        # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description_{side}"].split()[:100])}'.strip()
+
+        return string
+
+    def serialize_sample_dblpacm(self, sample):
+
+        entity_serializer = EntitySerializer('dblp-acm_1')
+        strings = []
+        for side in ['left', 'right']:
+            dict_sample = sample.to_dict()
+            dict_sample['name'] = dict_sample['title_{}'.format(side)]
+            dict_sample['authors'] = dict_sample['authors_{}'.format(side)]
+            dict_sample['venue'] = dict_sample['venue_{}'.format(side)]
+            dict_sample['year'] = dict_sample['year_{}'.format(side)]
+            strings.append(entity_serializer.convert_to_str_representation(dict_sample))
+
+        string = '[SEP]'.join(strings)
+        # string = ''
+        # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer_{side}"].split())}'.strip()
+        # string = f'{string} [COL] title [VAL] {" ".join(sample[f"title_{side}"].split())}'.strip()
+        # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price_{side}"]).split())}'.strip()
+        # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description_{side}"].split()[:100])}'.strip()
+
+        return string
+
+    def serialize_sample_dblpgooglescholar(self, sample):
+
+        entity_serializer = EntitySerializer('dblp-googlescholar_1')
+        strings = []
+        for side in ['left', 'right']:
+            dict_sample = sample.to_dict()
+            dict_sample['name'] = dict_sample['title_{}'.format(side)]
+            dict_sample['authors'] = dict_sample['authors_{}'.format(side)]
+            dict_sample['venue'] = dict_sample['venue_{}'.format(side)]
+            dict_sample['year'] = dict_sample['year_{}'.format(side)]
+            strings.append(entity_serializer.convert_to_str_representation(dict_sample))
+
+        string = '[SEP]'.join(strings)
+
+        # string = ''
+        # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer_{side}"].split())}'.strip()
+        # string = f'{string} [COL] title [VAL] {" ".join(sample[f"title_{side}"].split())}'.strip()
+        # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price_{side}"]).split())}'.strip()
+        # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description_{side}"].split()[:100])}'.strip()
+
+        return string
+
+
+    def serialize_sample_walmartamazon(self, sample):
+
+        entity_serializer = EntitySerializer('walmart-amazon_1')
+        strings = []
+        for side in ['left', 'right']:
+            dict_sample = sample.to_dict()
+            dict_sample['name'] = dict_sample['title_{}'.format(side)]
+            dict_sample['category'] = dict_sample['category_{}'.format(side)]
+            dict_sample['brand'] = dict_sample['brand_{}'.format(side)]
+            dict_sample['modelno'] = dict_sample['modelno_{}'.format(side)]
+            dict_sample['price'] = dict_sample['price_{}'.format(side)]
+            strings.append(entity_serializer.convert_to_str_representation(dict_sample))
+
+        string = '[SEP]'.join(strings)
+
+        # string = ''
+        # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer_{side}"].split())}'.strip()
+        # string = f'{string} [COL] title [VAL] {" ".join(sample[f"title_{side}"].split())}'.strip()
+        # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price_{side}"]).split())}'.strip()
+        # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description_{side}"].split()[:100])}'.strip()
+
+        return string
+
+
+    def serialize_sample_wdcproduct(self, sample):
+
+        entity_serializer = EntitySerializer('wdcproducts')
+        strings = []
+        for side in ['left', 'right']:
+            dict_sample = sample.to_dict()
+            dict_sample['name'] = dict_sample['title_{}'.format(side)]
+            dict_sample['brand'] = dict_sample['brand_{}'.format(side)]
+            dict_sample['description'] = dict_sample['description_{}'.format(side)]
+            dict_sample['price'] = dict_sample['price_{}'.format(side)]
+            dict_sample['pricecurrency'] = dict_sample['pricecurrency_{}'.format(side)]
+            strings.append(entity_serializer.convert_to_str_representation(dict_sample))
+        string = '[SEP]'.join(strings)
 
         # string = ''
         # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer_{side}"].split())}'.strip()

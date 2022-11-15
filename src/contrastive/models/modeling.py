@@ -28,52 +28,37 @@ class BaseEncoder(nn.Module):
 # self-supervised contrastive model
 class ContrastiveSelfSupervisedPretrainModel(nn.Module):
 
-    def __init__(self, len_tokenizer, model='huawei-noah/TinyBERT_General_4L_312D', ssv=True, pool=False, proj='mlp', temperature=0.07, num_augments=2):
+    def __init__(self, len_tokenizer, model='huawei-noah/TinyBERT_General_4L_312D', pool=True, proj='mlp', temperature=0.07):
         super().__init__()
 
-        self.ssv = ssv
         self.pool = pool
         self.proj = proj
         self.temperature = temperature
-        self.num_augments = num_augments
         self.criterion = SupConLoss(self.temperature)
 
         self.encoder = BaseEncoder(len_tokenizer, model)
         self.config = self.encoder.transformer.config
 
-        self.contrastive_head = ContrastivePretrainHead(self.config.hidden_size, self.proj)
+        
+    def forward(self, input_ids, attention_mask, labels, input_ids_right, attention_mask_right):
 
-        
-    def forward(self, input_ids, attention_mask, labels):
-        
-        additional_outputs = []
         if self.pool:
             output_left = self.encoder(input_ids, attention_mask)
             output_left = mean_pooling(output_left, attention_mask)
 
-            for num in range(self.num_augments-1):
-                output_right = self.encoder(input_ids, attention_mask)
-                output_right = mean_pooling(output_right, attention_mask).unsqueeze(1)
-                additional_outputs.append(output_right)
+            output_right = self.encoder(input_ids_right, attention_mask_right)
+            output_right = mean_pooling(output_right, attention_mask_right)
         else:
-            output_left = self.encoder(input_ids, attention_mask)['pooler_output'].unsqueeze(1)
-            for num in range(self.num_augments-1):
-                additional_outputs.append(self.encoder(input_ids, attention_mask)['pooler_output'].unsqueeze(1))
-        
-        output = torch.cat((output_left, *additional_outputs), 1)
+            output_left = self.encoder(input_ids, attention_mask)['pooler_output']
+            output_right = self.encoder(input_ids_right, attention_mask_right)['pooler_output']
+
+        output = torch.cat((output_left.unsqueeze(1), output_right.unsqueeze(1)), 1)
 
         output = F.normalize(output, dim=-1)
 
-        proj_output = self.contrastive_head(output)
+        loss = self.criterion(output)
 
-        proj_output = F.normalize(proj_output, dim=-1)
-
-        if self.ssv:
-            loss = self.criterion(proj_output)
-        else:
-            loss = self.criterion(proj_output, labels)
-
-        return ((loss,))
+        return loss, output
 
 # supervised contrastive model
 class ContrastivePretrainModel(nn.Module):
@@ -107,7 +92,7 @@ class ContrastivePretrainModel(nn.Module):
 
         loss = self.criterion(output, labels)
 
-        return ((loss,))
+        return loss, output
 
 
 class ContrastiveModel(nn.Module):

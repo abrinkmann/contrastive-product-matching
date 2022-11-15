@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 
+from src.finetuning.open_book.contrastive_product_matching.src.contrastive.data.augmentation import delete_random_tokens
 from src.strategy.open_book.entity_serialization import EntitySerializer
 
 np.random.seed(42)
@@ -56,6 +57,7 @@ def serialize_sample_abtbuy(sample):
 
     return string
 
+
 def serialize_sample_amazongoogle(sample):
     entity_serializer = EntitySerializer('amazon-google')
     dict_sample = sample.to_dict()
@@ -64,6 +66,60 @@ def serialize_sample_amazongoogle(sample):
     # string = ''
     # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer"].split())}'.strip()
     # string = f'{string} [COL] title [VAL] {" ".join(sample[f"title"].split())}'.strip()
+    # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price"]).split())}'.strip()
+    # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description"].split()[:100])}'.strip()
+
+    return string
+
+
+def serialize_sample_dblpacm(sample):
+    entity_serializer = EntitySerializer('dblp-acm_1')
+    dict_sample = sample.to_dict()
+    dict_sample['name'] = dict_sample['title']
+    string = entity_serializer.convert_to_str_representation(dict_sample)
+    # string = ''
+    # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"brand"].split())}'.strip()
+    # string = f'{string} [COL] title [VAL] {" ".join(sample[f"name"].split())}'.strip()
+    # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price"]).split())}'.strip()
+    # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description"].split()[:100])}'.strip()
+
+    return string
+
+
+def serialize_sample_dblpscholar(sample):
+    entity_serializer = EntitySerializer('dblp-googlescholar_1')
+    dict_sample = sample.to_dict()
+    dict_sample['name'] = dict_sample['title']
+    string = entity_serializer.convert_to_str_representation(dict_sample)
+    # string = ''
+    # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"brand"].split())}'.strip()
+    # string = f'{string} [COL] title [VAL] {" ".join(sample[f"name"].split())}'.strip()
+    # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price"]).split())}'.strip()
+    # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description"].split()[:100])}'.strip()
+
+    return string
+
+def serialize_sample_walmartamazon(sample):
+    entity_serializer = EntitySerializer('walmart-amazon_1')
+    dict_sample = sample.to_dict()
+    dict_sample['name'] = dict_sample['title']
+    string = entity_serializer.convert_to_str_representation(dict_sample)
+    # string = ''
+    # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"brand"].split())}'.strip()
+    # string = f'{string} [COL] title [VAL] {" ".join(sample[f"name"].split())}'.strip()
+    # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price"]).split())}'.strip()
+    # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description"].split()[:100])}'.strip()
+
+    return string
+
+def serialize_sample_wdcproducts(sample):
+    entity_serializer = EntitySerializer('wdcproducts')
+    dict_sample = sample.to_dict()
+    dict_sample['name'] = dict_sample['title']
+    string = entity_serializer.convert_to_str_representation(dict_sample)
+    # string = ''
+    # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"brand"].split())}'.strip()
+    # string = f'{string} [COL] title [VAL] {" ".join(sample[f"name"].split())}'.strip()
     # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price"]).split())}'.strip()
     # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description"].split()[:100])}'.strip()
 
@@ -177,6 +233,18 @@ class ContrastivePretrainDataset(torch.utils.data.Dataset):
         elif self.dataset == 'amazon-google':
             data['features'] = data.apply(serialize_sample_amazongoogle, axis=1)
 
+        elif self.dataset == 'dblp-acm':
+            data['features'] = data.apply(serialize_sample_dblpacm, axis=1)
+
+        elif self.dataset == 'dblp-googlescholar':
+            data['features'] = data.apply(serialize_sample_dblpscholar, axis=1)
+
+        elif self.dataset == 'walmart-amazon':
+            data['features'] = data.apply(serialize_sample_walmartamazon, axis=1)
+
+        elif self.dataset == 'wdcproducts80cc20rnd050un':
+            data['features'] = data.apply(serialize_sample_wdcproducts, axis=1)
+
         label_enc = LabelEncoder()
         data['labels'] = label_enc.fit_transform(data['cluster_id'])
 
@@ -190,7 +258,7 @@ class ContrastivePretrainDataset(torch.utils.data.Dataset):
 # builds correspondence graph from train+val and builds source-aware sampling datasets
 # if split=False, corresponds to not using source-aware sampling
 class ContrastivePretrainDatasetDeepmatcher(torch.utils.data.Dataset):
-    def __init__(self, path, deduction_set, tokenizer='huawei-noah/TinyBERT_General_4L_312D', max_length=128, intermediate_set=None, clean=False, dataset='abt-buy', aug=False, split=True):
+    def __init__(self, path, deduction_set, tokenizer='huawei-noah/TinyBERT_General_4L_312D', max_length=128, intermediate_set=None, clean=False, dataset='abt-buy', aug=False, split=True, dataset_type='train+valid'):
 
         self.max_length = max_length
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer, additional_special_tokens=('[COL]', '[VAL]'))
@@ -215,6 +283,14 @@ class ContrastivePretrainDatasetDeepmatcher(torch.utils.data.Dataset):
                 val = pd.read_csv('../../data/interim/abt-buy/abt-buy-valid.csv')
             elif dataset == 'amazon-google':
                 val = pd.read_csv('../../data/interim/amazon-google/amazon-google-valid.csv')
+            elif dataset == 'dblp-acm':
+                val = pd.read_csv('../../data/interim/dblp-acm/dblp-acm-valid.csv')
+            elif dataset == 'dblp-googlescholar':
+                val = pd.read_csv('../../data/interim/dblp-googlescholar/dblp-googlescholar-valid.csv')
+            elif dataset == 'walmart-amazon':
+                val = pd.read_csv('../../data/interim/walmart-amazon/walmart-amazon-valid.csv')
+            elif dataset == 'wdcproducts80cc20rnd050un':
+                val = pd.read_csv('../../data/interim/wdcproducts80cc20rnd050un/wdcproducts80cc20rnd050un-valid.csv')
 
             # use 80% of train and val set positives to build correspondence graph
             val_set = train_data[train_data['pair_id'].isin(val['pair_id'])]
@@ -227,7 +303,16 @@ class ContrastivePretrainDatasetDeepmatcher(torch.utils.data.Dataset):
             train_data = train_data[train_data['label'] == 1]
             train_data = train_data.sample(frac=0.80)
 
-            train_data = train_data.append(val_set_pos)
+            if dataset_type == 'train+valid':
+                # Pre-train on train + validation
+                train_data = train_data.append(val_set_pos)
+            elif dataset_type == 'train':
+                # Pre-train on train
+                train_data = train_data
+            elif dataset_type == 'valid':
+                # Validate on validation
+                train_data = val_set_pos
+
 
             # build the connected components by applying binning
             bucket_list = []
@@ -268,6 +353,18 @@ class ContrastivePretrainDatasetDeepmatcher(torch.utils.data.Dataset):
             elif dataset == 'amazon-google':
                 left_index = [x for x in index if 'amazon' in x]
                 right_index = [x for x in index if 'google' in x]
+            elif dataset == 'dblp-acm_1':
+                left_index = [x for x in index if 'dblp' in x]
+                right_index = [x for x in index if 'acm' in x]
+            elif dataset == 'dblp-googlescholar':
+                left_index = [x for x in index if 'dblp' in x]
+                right_index = [x for x in index if 'googlescholar' in x]
+            elif dataset == 'walmart-amazon':
+                left_index = [x for x in index if 'walmart' in x]
+                right_index = [x for x in index if 'amazon' in x]
+            elif dataset == 'wdcproducts80cc20rnd050un':
+                left_index = [x for x in index if 'tablea' in x]
+                right_index = [x for x in index if 'tableb' in x]
             
             # assing increasing integer label to single nodes
             single_entities = single_entities.reset_index(drop=True)
@@ -365,11 +462,12 @@ class ContrastivePretrainDatasetDeepmatcher(torch.utils.data.Dataset):
         pos2 = selection2.sample(1).iloc[0].copy()
 
         # # apply augmentation if set
-        # if self.aug:
-        #     example1['features'] = self.augmenter.apply_aug(example1['features'])
-        #     pos1['features'] = self.augmenter.apply_aug(pos1['features'])
-        #     example2['features'] = self.augmenter.apply_aug(example2['features'])
-        #     pos2['features'] = self.augmenter.apply_aug(pos2['features'])
+        if self.aug == 'del':
+            # Focus on augmentation through deletion for SimCLR & Barlow Twins
+            example1['features'] = delete_random_tokens(example1['features'])
+            pos1['features'] = delete_random_tokens(pos1['features'])
+            example2['features'] = delete_random_tokens(example2['features'])
+            pos2['features'] = delete_random_tokens(pos2['features'])
 
         return ((example1, pos1), (example2, pos2))
 
@@ -386,6 +484,18 @@ class ContrastivePretrainDatasetDeepmatcher(torch.utils.data.Dataset):
 
         elif self.dataset == 'amazon-google':
             data['features'] = data.apply(serialize_sample_amazongoogle, axis=1)
+
+        elif self.dataset == 'dblp-acm':
+            data['features'] = data.apply(serialize_sample_dblpacm, axis=1)
+
+        elif self.dataset == 'dblp-googlescholar':
+            data['features'] = data.apply(serialize_sample_dblpscholar, axis=1)
+
+        elif self.dataset == 'walmart-amazon':
+            data['features'] = data.apply(serialize_sample_walmartamazon, axis=1)
+
+        elif self.dataset == 'wdcproducts80cc20rnd050un':
+            data['features'] = data.apply(serialize_sample_wdcproducts, axis=1)
 
         data = data[['features', 'labels']]
 
@@ -426,6 +536,15 @@ class ContrastiveClassificationDataset(torch.utils.data.Dataset):
                 validation_ids = pd.read_csv(f'../../data/interim/abt-buy/abt-buy-valid.csv')
             elif dataset == 'amazon-google':
                 validation_ids = pd.read_csv(f'../../data/interim/amazon-google/amazon-google-valid.csv')
+            elif dataset == 'dblp-acm':
+                validation_ids = pd.read_csv('../../data/interim/dblp-acm/dblp-acm-valid.csv')
+            elif dataset == 'dblp-googlescholar':
+                validation_ids = pd.read_csv('../../data/interim/dblp-googlescholar/dblp-googlescholar-valid.csv')
+            elif dataset == 'walmart-amazon':
+                validation_ids = pd.read_csv('../../data/interim/walmart-amazon/walmart-amazon-valid.csv')
+            elif dataset == 'wdcproducts80cc20rnd050un':
+                validation_ids = pd.read_csv('../../data/interim/wdcproducts80cc20rnd050un/wdcproducts80cc20rnd050un-valid.csv')
+
             if self.dataset_type == 'train':
                 data = data[~data['pair_id'].isin(validation_ids['pair_id'])]
             else:
@@ -461,6 +580,18 @@ class ContrastiveClassificationDataset(torch.utils.data.Dataset):
         elif self.dataset == 'amazon-google':
             data['features_left'] = data.apply(self.serialize_sample_amazongoogle, args=('left',), axis=1)
             data['features_right'] = data.apply(self.serialize_sample_amazongoogle, args=('right',), axis=1)
+        elif self.dataset == 'dblp-acm':
+            data['features_left'] = data.apply(self.serialize_sample_dblpacm, args=('left',), axis=1)
+            data['features_right'] = data.apply(self.serialize_sample_dblpacm, args=('right',), axis=1)
+        elif self.dataset == 'dblp-googlescholar':
+            data['features_left'] = data.apply(self.serialize_sample_dblpgooglescholar, args=('left',), axis=1)
+            data['features_right'] = data.apply(self.serialize_sample_dblpgooglescholar, args=('right',), axis=1)
+        elif self.dataset == 'walmart-amazon':
+            data['features_left'] = data.apply(self.serialize_sample_walmartamazon, args=('left',), axis=1)
+            data['features_right'] = data.apply(self.serialize_sample_walmartamazon, args=('right',), axis=1)
+        elif self.dataset == 'wdcproducts80cc20rnd050un':
+            data['features_left'] = data.apply(self.serialize_sample_wdcproduct, args=('left',), axis=1)
+            data['features_right'] = data.apply(self.serialize_sample_wdcproduct, args=('right',), axis=1)
 
         data = data[['features_left', 'features_right', 'label']]
         data = data.rename(columns={'label': 'labels'})
@@ -504,6 +635,81 @@ class ContrastiveClassificationDataset(torch.utils.data.Dataset):
         dict_sample['name'] = dict_sample['title_{}'.format(side)]
         dict_sample['price'] = dict_sample['price_{}'.format(side)]
         dict_sample['description'] = dict_sample['description_{}'.format(side)]
+        string = entity_serializer.convert_to_str_representation(dict_sample)
+
+        # string = ''
+        # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer_{side}"].split())}'.strip()
+        # string = f'{string} [COL] title [VAL] {" ".join(sample[f"title_{side}"].split())}'.strip()
+        # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price_{side}"]).split())}'.strip()
+        # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description_{side}"].split()[:100])}'.strip()
+
+        return string
+
+    def serialize_sample_dblpacm(self, sample, side):
+
+        entity_serializer = EntitySerializer('dblp-acm_1')
+        dict_sample = sample.to_dict()
+        dict_sample['name'] = dict_sample['title_{}'.format(side)]
+        dict_sample['authors'] = dict_sample['authors_{}'.format(side)]
+        dict_sample['venue'] = dict_sample['venue_{}'.format(side)]
+        dict_sample['year'] = dict_sample['year_{}'.format(side)]
+        string = entity_serializer.convert_to_str_representation(dict_sample)
+
+        # string = ''
+        # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer_{side}"].split())}'.strip()
+        # string = f'{string} [COL] title [VAL] {" ".join(sample[f"title_{side}"].split())}'.strip()
+        # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price_{side}"]).split())}'.strip()
+        # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description_{side}"].split()[:100])}'.strip()
+
+        return string
+
+    def serialize_sample_dblpgooglescholar(self, sample, side):
+
+        entity_serializer = EntitySerializer('dblp-googlescholar_1')
+        dict_sample = sample.to_dict()
+        dict_sample['name'] = dict_sample['title_{}'.format(side)]
+        dict_sample['authors'] = dict_sample['authors_{}'.format(side)]
+        dict_sample['venue'] = dict_sample['venue_{}'.format(side)]
+        dict_sample['year'] = dict_sample['year_{}'.format(side)]
+        string = entity_serializer.convert_to_str_representation(dict_sample)
+
+        # string = ''
+        # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer_{side}"].split())}'.strip()
+        # string = f'{string} [COL] title [VAL] {" ".join(sample[f"title_{side}"].split())}'.strip()
+        # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price_{side}"]).split())}'.strip()
+        # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description_{side}"].split()[:100])}'.strip()
+
+        return string
+
+
+    def serialize_sample_walmartamazon(self, sample, side):
+
+        entity_serializer = EntitySerializer('walmart-amazon_1')
+        dict_sample = sample.to_dict()
+        dict_sample['name'] = dict_sample['title_{}'.format(side)]
+        dict_sample['category'] = dict_sample['category_{}'.format(side)]
+        dict_sample['brand'] = dict_sample['brand_{}'.format(side)]
+        dict_sample['modelno'] = dict_sample['modelno_{}'.format(side)]
+        dict_sample['price'] = dict_sample['price_{}'.format(side)]
+        string = entity_serializer.convert_to_str_representation(dict_sample)
+
+        # string = ''
+        # string = f'{string}[COL] brand [VAL] {" ".join(sample[f"manufacturer_{side}"].split())}'.strip()
+        # string = f'{string} [COL] title [VAL] {" ".join(sample[f"title_{side}"].split())}'.strip()
+        # string = f'{string} [COL] price [VAL] {" ".join(str(sample[f"price_{side}"]).split())}'.strip()
+        # string = f'{string} [COL] description [VAL] {" ".join(sample[f"description_{side}"].split()[:100])}'.strip()
+
+        return string
+
+    def serialize_sample_wdcproduct(self, sample, side):
+
+        entity_serializer = EntitySerializer('wdcproducts')
+        dict_sample = sample.to_dict()
+        dict_sample['name'] = dict_sample['title_{}'.format(side)]
+        dict_sample['brand'] = dict_sample['brand_{}'.format(side)]
+        dict_sample['description'] = dict_sample['description_{}'.format(side)]
+        dict_sample['price'] = dict_sample['price_{}'.format(side)]
+        dict_sample['pricecurrency'] = dict_sample['pricecurrency_{}'.format(side)]
         string = entity_serializer.convert_to_str_representation(dict_sample)
 
         # string = ''

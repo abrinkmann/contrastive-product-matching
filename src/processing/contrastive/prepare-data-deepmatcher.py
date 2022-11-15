@@ -154,7 +154,11 @@ if __name__ == '__main__':
 
     datasets = [
         ('abt-buy', 'abt', 'buy'),
-        ('amazon-google', 'amazon', 'google')
+        ('amazon-google', 'amazon', 'google'),
+        ('dblp-acm', 'dblp', 'acm'),
+        ('dblp-googlescholar', 'dblp', 'googlescholar'),
+        ('walmart-amazon', 'walmart', 'amazon'),
+        ('wdcproducts80cc20rnd050un', 'tablea', 'tableb')
     ]
     for dataset in datasets:
         preprocess_dataset(dataset)

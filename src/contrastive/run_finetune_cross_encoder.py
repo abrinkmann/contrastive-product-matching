@@ -138,7 +138,7 @@ def main():
     def get_posneg():
         if data_args.dataset_name == 'amazon-google' or data_args.dataset_name == 'abt-buy':
             return 9
-        elif data_args.dataset_name == 'walmart-amazon':
+        elif data_args.dataset_name == 'walmart-amazon_1':
             return 10
         else:
             if data_args.train_size == 'small':

@@ -1,6 +1,8 @@
 """
 Run column type annotation fine-tuning
 """
+import math
+
 import numpy as np
 np.random.seed(42)
 import random
@@ -141,7 +143,7 @@ def main():
     def get_posneg():
         if data_args.dataset_name == 'amazon-google' or data_args.dataset_name == 'abt-buy':
             return 9
-        elif data_args.dataset_name == 'walmart-amazon':
+        elif data_args.dataset_name == 'walmart-amazon_1':
             return 10
         else:
             if data_args.train_size == 'small':
@@ -152,6 +154,11 @@ def main():
                 return 5
             elif data_args.train_size == 'xlarge':
                 return 6
+
+        # If no solution is found, calculte Pos Neg ratio
+        counts = train_dataset.data['labels'].value_counts()
+        ratio = counts[0] / counts[1]
+        return math.ceil(ratio)
 
     def model_init(trial):
         init_args = {}
