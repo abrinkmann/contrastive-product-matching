@@ -10,6 +10,8 @@ TEMP=$3
 EPOCHS=$4
 AUG=$5
 
+AUG="del"
+
 python run_pretraining_deepmatcher.py \
     --do_train \
 	--dataset_name=amazon-google \

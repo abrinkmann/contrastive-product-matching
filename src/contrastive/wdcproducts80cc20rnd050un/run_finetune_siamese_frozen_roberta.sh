@@ -14,7 +14,7 @@ AUG=$7
 PREAUG=$8
 
 export PYTHONPATH=/home/alebrink/development/table-augmentation-framework/
-export CUDA_VISIBLE_DEVICES=7
+#export CUDA_VISIBLE_DEVICES=7
 
 python run_finetune_siamese.py \
 	--model_pretrained_checkpoint /ceph/alebrink/contrastive-product-matching/reports/contrastive/wdcproducts80cc20rnd050un-clean-$AUG$PREBATCH-$LR-$TEMP-$PREEPOCHS-roberta-base/pytorch_model.bin \

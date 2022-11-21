@@ -95,3 +95,51 @@ class SupConLoss(nn.Module):
         loss = loss.view(anchor_count, batch_size).mean()
 
         return loss
+
+def off_diagonal(x):
+    # return a flattened view of the off-diagonal elements of a square matrix
+    n, m = x.shape
+    assert n == m
+    return x.flatten()[:-1].view(n - 1, n + 1)[:, 1:].flatten()
+
+class BarlowTwins(nn.Module):
+    # Barlow Twins: https://arxiv.org/abs/2103.03230
+    # Source code: https://github.com/facebookresearch/barlowtwins/blob/main/main.py
+    def __init__(self, lambd, model_dim):
+        super().__init__()
+        self.lambd = lambd
+        self.model_dim = model_dim
+
+        # projector - Think about how this can be integrated!
+        # projector
+        sizes = [self.model_dim, 4096]  # + list(map(int, args.projector.split('-')))
+        layers = []
+        for i in range(len(sizes) - 2):
+            layers.append(nn.Linear(sizes[i], sizes[i + 1], bias=False))
+            layers.append(nn.BatchNorm1d(sizes[i + 1]))
+            layers.append(nn.ReLU(inplace=True))
+        layers.append(nn.Linear(sizes[-2], sizes[-1], bias=False))
+        self.projector = nn.Sequential(*layers)
+
+        # normalization layer for the representations z1 and z2
+        self.bn = nn.BatchNorm1d(sizes[-1], affine=False)
+
+    def forward(self, features):
+        # features = self.projector(features)
+        z1 = self.projector(features[:, 0, :])
+        z2 = self.projector(features[:, 1, :])
+
+        # empirical cross-correlation matrix
+        c = self.bn(z1).T @ self.bn(z2)
+
+        # sum the cross-correlation matrix between all gpus
+        ##c.div_(self.args.batch_size)
+        ##torch.distributed.all_reduce(c)
+
+        on_diag = torch.diagonal(c).add_(-1).pow_(2).sum() * (1.0 / 256)
+        off_diag = off_diagonal(c).pow_(2).sum() * (1.0 / 256)
+        # print('On Diagonal: {}'.format(on_diag))
+        # print('Off Diagonal: {}'.format(off_diag))
+        loss = on_diag + self.lambd * off_diag
+
+        return loss

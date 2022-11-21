@@ -50,6 +50,8 @@ class CrossEncoderDataset(torch.utils.data.Dataset):
                 validation_ids = pd.read_csv('../../data/interim/walmart-amazon_1/walmart-amazon_1-valid.csv')
             elif dataset == 'wdcproducts80cc20rnd050un':
                 validation_ids = pd.read_csv('../../data/interim/wdcproducts80cc20rnd050un/wdcproducts80cc20rnd050un-valid.csv')
+            elif dataset == 'wdcproducts80cc20rnd000un':
+                validation_ids = pd.read_csv('../../data/interim/wdcproducts80cc20rnd000un/wdcproducts80cc20rnd000un-valid.csv')
 
             if self.dataset_type == 'train':
                 data = data[~data['pair_id'].isin(validation_ids['pair_id'])]
@@ -91,6 +93,8 @@ class CrossEncoderDataset(torch.utils.data.Dataset):
         elif self.dataset == 'walmart-amazon_1':
             data['features'] = data.apply(self.serialize_sample_walmartamazon, axis=1)
         elif self.dataset == 'wdcproducts80cc20rnd050un':
+            data['features'] = data.apply(self.serialize_sample_wdcproduct, axis=1)
+        elif self.dataset == 'wdcproducts80cc20rnd000un':
             data['features'] = data.apply(self.serialize_sample_wdcproduct, axis=1)
             #data['features_right'] = data.apply(self.serialize_sample_amazongoogle, args=('right',), axis=1)
 

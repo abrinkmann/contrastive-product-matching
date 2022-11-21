@@ -6,15 +6,14 @@
 #SBATCH --export=NONE
 BATCH=$1
 LR=$2
-TEMP=$3
-EPOCHS=$4
+EPOCHS=$3
 
 AUG="del"
 
 export PYTHONPATH=/home/alebrink/development/table-augmentation-framework/
-export CUDA_VISIBLE_DEVICES=0
+#export CUDA_VISIBLE_DEVICES=0
 
-python run_pretraining_simclr_deepmatcher.py \
+python run_pretraining_barlow_deepmatcher.py \
     --do_train \
 	--dataset_name=abt-buy \
 	--clean=True \
@@ -22,8 +21,7 @@ python run_pretraining_simclr_deepmatcher.py \
 	--id_deduction_set /home/alebrink/development/table-augmentation-framework/src/finetuning/open_book/contrastive_product_matching/data/interim/abt-buy/abt-buy-train.json.gz \
 	--tokenizer="roberta-base" \
 	--grad_checkpoint=True \
-    --output_dir /ceph/alebrink/contrastive-product-matching/reports/contrastive/abtbuy-simclr-$AUG$BATCH-$LR-$TEMP-$EPOCHS-roberta-base/ \
-	--temperature=$TEMP \
+    --output_dir /ceph/alebrink/contrastive-product-matching/reports/contrastive/abtbuy-barlow-$AUG$BATCH-$LR-$TEMP-$EPOCHS-roberta-base/ \
 	--per_device_train_batch_size=$BATCH \
 	--learning_rate=$LR \
 	--weight_decay=0.01 \

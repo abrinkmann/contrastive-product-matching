@@ -32,10 +32,11 @@ from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
 
 from src.finetuning.open_book.contrastive_product_matching.src.contrastive.models.modeling import \
-    ContrastiveSelfSupervisedPretrainModel
-from src.finetuning.open_book.contrastive_product_matching.src.contrastive.data.datasets import ContrastivePretrainDatasetSSV
+    BarlowTwinsPretrainModel
+from src.finetuning.open_book.contrastive_product_matching.src.contrastive.data.datasets import \
+    ContrastivePretrainDatasetSSV
 from src.finetuning.open_book.contrastive_product_matching.src.contrastive.data.data_collators import \
-    DataCollatorContrastivePretrainDeepmatcherSSV
+    DataCollatorContrastivePretrainDeepmatcher, DataCollatorContrastivePretrainDeepmatcherSSV
 from src.finetuning.open_book.contrastive_product_matching.src.contrastive.models.metrics import compute_metrics_bce
 
 from transformers import EarlyStoppingCallback
@@ -196,31 +197,31 @@ def main():
             raise ValueError("--do_train requires a train dataset")
         train_dataset = raw_datasets["train"]
         if data_args.interm_file is not None:
-            train_dataset = ContrastivePretrainDatasetSSV(train_dataset, tokenizer=model_args.tokenizer,
-                                                          intermediate_set=data_args.interm_file,
-                                                          clean=data_args.clean,
-                                                          dataset=data_args.dataset_name,
-                                                          deduction_set=data_args.id_deduction_set,
-                                                          aug=data_args.augment)
+                train_dataset = ContrastivePretrainDatasetSSV(train_dataset, tokenizer=model_args.tokenizer,
+                                                                      intermediate_set=data_args.interm_file,
+                                                                      clean=data_args.clean,
+                                                                      dataset=data_args.dataset_name,
+                                                                      deduction_set=data_args.id_deduction_set,
+                                                                      aug=data_args.augment)
         else:
-            train_dataset = ContrastivePretrainDatasetSSV(train_dataset, tokenizer=model_args.tokenizer,
-                                                          clean=data_args.clean,
-                                                          dataset=data_args.dataset_name,
-                                                          deduction_set=data_args.id_deduction_set,
-                                                          aug=data_args.augment)
+                train_dataset = ContrastivePretrainDatasetSSV(train_dataset, tokenizer=model_args.tokenizer,
+                                                                      clean=data_args.clean,
+                                                                      dataset=data_args.dataset_name,
+                                                                      deduction_set=data_args.id_deduction_set,
+                                                                      aug=data_args.augment)
 
     # Data collator
     data_collator = DataCollatorContrastivePretrainDeepmatcherSSV(tokenizer=train_dataset.tokenizer)
 
     if model_args.model_pretrained_checkpoint:
-        model = ContrastiveSelfSupervisedPretrainModel(model_args.model_pretrained_checkpoint,
+        model = BarlowTwinsPretrainModel(model_args.model_pretrained_checkpoint,
                                                        len_tokenizer=len(train_dataset.tokenizer),
-                                                       model=model_args.tokenizer, temperature=model_args.temperature)
+                                                       model=model_args.tokenizer)
         if model_args.grad_checkpoint:
             model.encoder.transformer._set_gradient_checkpointing(model.encoder.transformer.encoder, True)
     else:
-        model = ContrastiveSelfSupervisedPretrainModel(len_tokenizer=len(train_dataset.tokenizer),
-                                                       model=model_args.tokenizer, temperature=model_args.temperature)
+        model = BarlowTwinsPretrainModel(len_tokenizer=len(train_dataset.tokenizer),
+                                                       model=model_args.tokenizer)
         if model_args.grad_checkpoint:
             model.encoder.transformer._set_gradient_checkpointing(model.encoder.transformer.encoder, True)
 

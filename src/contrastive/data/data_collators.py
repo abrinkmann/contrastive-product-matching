@@ -97,6 +97,34 @@ class DataCollatorContrastivePretrainDeepmatcher:
 
         return batch
 
+
+# collator for supervised contrastive pre-training for Abt-Buy and Amazon-Google
+# randomly chooses the sampling dataset when using source-aware sampling
+@dataclass
+class DataCollatorContrastivePretrainDeepmatcherSSV:
+    tokenizer: PreTrainedTokenizerBase
+    max_length: Optional[int] = 128
+    pad_to_multiple_of: Optional[int] = None
+    return_tensors: str = "pt"
+
+    def __call__(self, input):
+        features_left = [x[0]['features'] for x in input]
+        features_right = [x[1]['features'] for x in input]
+
+        batch_left = self.tokenizer(features_left, padding=True, truncation=True, max_length=self.max_length,
+                                    return_tensors=self.return_tensors)
+        batch_right = self.tokenizer(features_right, padding=True, truncation=True, max_length=self.max_length,
+                                     return_tensors=self.return_tensors)
+
+        batch = batch_left
+        if 'token_type_ids' in batch.keys():
+            del batch['token_type_ids']
+        batch['input_ids_right'] = batch_right['input_ids']
+        batch['attention_mask_right'] = batch_right['attention_mask']
+
+        return batch
+
+
 # collator for pair-wise cross-entropy fine-tuning
 @dataclass
 class DataCollatorContrastiveClassification:

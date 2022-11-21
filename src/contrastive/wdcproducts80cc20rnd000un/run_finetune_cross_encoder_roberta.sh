@@ -15,14 +15,14 @@ export PYTHONPATH=/home/alebrink/development/table-augmentation-framework/
 python run_finetune_cross_encoder.py \
 	--model_pretrained_checkpoint="roberta-base" \
     --do_train \
-	--dataset_name=wdcproducts80cc20rnd050un \
-    --train_file /home/alebrink/development/table-augmentation-framework/src/finetuning/open_book/contrastive_product_matching/data/interim/wdcproducts80cc20rnd050un/wdcproducts80cc20rnd050un-train.json.gz \
-	--validation_file /home/alebrink/development/table-augmentation-framework/src/finetuning/open_book/contrastive_product_matching/data/interim/wdcproducts80cc20rnd050un/wdcproducts80cc20rnd050un-train.json.gz \
-	--test_file /home/alebrink/development/table-augmentation-framework/src/finetuning/open_book/contrastive_product_matching/data/interim/wdcproducts80cc20rnd050un/wdcproducts80cc20rnd050un-gs.json.gz \
+	--dataset_name=wdcproducts80cc20rnd000un \
+    --train_file /home/alebrink/development/table-augmentation-framework/src/finetuning/open_book/contrastive_product_matching/data/interim/wdcproducts80cc20rnd000un/wdcproducts80cc20rnd000un-train.json.gz \
+	--validation_file /home/alebrink/development/table-augmentation-framework/src/finetuning/open_book/contrastive_product_matching/data/interim/wdcproducts80cc20rnd000un/wdcproducts80cc20rnd000un-train.json.gz \
+	--test_file /home/alebrink/development/table-augmentation-framework/src/finetuning/open_book/contrastive_product_matching/data/interim/wdcproducts80cc20rnd000un/wdcproducts80cc20rnd000un-gs.json.gz \
 	--evaluation_strategy=epoch \
 	--tokenizer="roberta-base" \
 	--grad_checkpoint=False \
-    --output_dir /ceph/alebrink/contrastive-product-matching/reports/cross_encoder/wdcproducts80cc20rnd050un-$BATCH-$LR-$EPOCHS-roberta-base/ \
+    --output_dir /ceph/alebrink/contrastive-product-matching/reports/cross_encoder/wdcproducts80cc20rnd-$BATCH-$LR-$EPOCHS-roberta-base/ \
 	--per_device_train_batch_size=$BATCH \
 	--learning_rate=$LR \
 	--weight_decay=0.01 \

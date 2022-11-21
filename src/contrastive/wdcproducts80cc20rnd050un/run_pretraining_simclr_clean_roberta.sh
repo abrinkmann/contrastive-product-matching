@@ -12,17 +12,17 @@ EPOCHS=$4
 AUG="del"
 
 export PYTHONPATH=/home/alebrink/development/table-augmentation-framework/
-export CUDA_VISIBLE_DEVICES=0
+#export CUDA_VISIBLE_DEVICES=3
 
 python run_pretraining_simclr_deepmatcher.py \
     --do_train \
-	--dataset_name=abt-buy \
+	--dataset_name=wdcproducts80cc20rnd050un \
 	--clean=True \
-    --train_file /home/alebrink/development/table-augmentation-framework/src/finetuning/open_book/contrastive_product_matching/data/processed/abt-buy/contrastive/abt-buy-train.pkl.gz \
-	--id_deduction_set /home/alebrink/development/table-augmentation-framework/src/finetuning/open_book/contrastive_product_matching/data/interim/abt-buy/abt-buy-train.json.gz \
+    --train_file /home/alebrink/development/table-augmentation-framework/src/finetuning/open_book/contrastive_product_matching/data/processed/wdcproducts80cc20rnd050un/contrastive/wdcproducts80cc20rnd050un-train.pkl.gz \
+	--id_deduction_set /home/alebrink/development/table-augmentation-framework/src/finetuning/open_book/contrastive_product_matching/data/interim/wdcproducts80cc20rnd050un/wdcproducts80cc20rnd050un-train.json.gz \
 	--tokenizer="roberta-base" \
 	--grad_checkpoint=True \
-    --output_dir /ceph/alebrink/contrastive-product-matching/reports/contrastive/abtbuy-simclr-$AUG$BATCH-$LR-$TEMP-$EPOCHS-roberta-base/ \
+    --output_dir /ceph/alebrink/contrastive-product-matching/reports/contrastive/wdcproducts80cc20rnd050un-simclr-$AUG$BATCH-$LR-$TEMP-$EPOCHS-roberta-base/ \
 	--temperature=$TEMP \
 	--per_device_train_batch_size=$BATCH \
 	--learning_rate=$LR \

@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from torch.nn import BCEWithLogitsLoss
 
 from transformers import AutoModel, AutoConfig
-from src.finetuning.open_book.contrastive_product_matching.src.contrastive.models.loss import SupConLoss
+from src.finetuning.open_book.contrastive_product_matching.src.contrastive.models.loss import SupConLoss, BarlowTwins
+
 
 def mean_pooling(model_output, attention_mask):
     token_embeddings = model_output[0] #First element of model_output contains all token embeddings
@@ -39,8 +40,7 @@ class ContrastiveSelfSupervisedPretrainModel(nn.Module):
         self.encoder = BaseEncoder(len_tokenizer, model)
         self.config = self.encoder.transformer.config
 
-        
-    def forward(self, input_ids, attention_mask, labels, input_ids_right, attention_mask_right):
+    def forward(self, input_ids, attention_mask, input_ids_right, attention_mask_right):
 
         if self.pool:
             output_left = self.encoder(input_ids, attention_mask)
@@ -59,6 +59,42 @@ class ContrastiveSelfSupervisedPretrainModel(nn.Module):
         loss = self.criterion(output)
 
         return loss, output
+
+
+# self-supervised contrastive model
+class BarlowTwinsPretrainModel(nn.Module):
+
+    def __init__(self, len_tokenizer, model='huawei-noah/TinyBERT_General_4L_312D', pool=True, proj='mlp',
+                 model_dim=768, lambd=0.0051):
+        super().__init__()
+
+        self.pool = pool
+        self.proj = proj
+        self.criterion = BarlowTwins(lambd, model_dim)
+
+        self.encoder = BaseEncoder(len_tokenizer, model)
+        self.config = self.encoder.transformer.config
+
+    def forward(self, input_ids, attention_mask, input_ids_right, attention_mask_right):
+
+        if self.pool:
+            output_left = self.encoder(input_ids, attention_mask)
+            output_left = mean_pooling(output_left, attention_mask)
+
+            output_right = self.encoder(input_ids_right, attention_mask_right)
+            output_right = mean_pooling(output_right, attention_mask_right)
+        else:
+            output_left = self.encoder(input_ids, attention_mask)['pooler_output']
+            output_right = self.encoder(input_ids_right, attention_mask_right)['pooler_output']
+
+        output = torch.cat((output_left.unsqueeze(1), output_right.unsqueeze(1)), 1)
+
+        output = F.normalize(output, dim=-1)
+
+        loss = self.criterion(output)
+
+        return loss, output
+
 
 # supervised contrastive model
 class ContrastivePretrainModel(nn.Module):

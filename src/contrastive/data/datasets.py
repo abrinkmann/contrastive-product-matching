@@ -177,8 +177,8 @@ class ContrastivePretrainDataset(torch.utils.data.Dataset):
         self.dataset = dataset
         self.aug = aug
 
-        if self.aug:
-            logging.warning('AUGMENTATION IS DEACTIVED!')
+        # if self.aug:
+        #     logging.warning('AUGMENTATION IS DEACTIVED!')
         #     self.augmenter = Augmenter(self.aug)
 
         data = pd.read_pickle(path)
@@ -245,6 +245,9 @@ class ContrastivePretrainDataset(torch.utils.data.Dataset):
         elif self.dataset == 'wdcproducts80cc20rnd050un':
             data['features'] = data.apply(serialize_sample_wdcproducts, axis=1)
 
+        elif self.dataset == 'wdcproducts80cc20rnd000un':
+            data['features'] = data.apply(serialize_sample_wdcproducts, axis=1)
+
         label_enc = LabelEncoder()
         data['labels'] = label_enc.fit_transform(data['cluster_id'])
 
@@ -253,6 +256,95 @@ class ContrastivePretrainDataset(torch.utils.data.Dataset):
         data = data[['features', 'labels']]
 
         return data
+
+
+# Dataset class for general Self Supervised Pretraining
+class ContrastivePretrainDatasetSSV(torch.utils.data.Dataset):
+    def __init__(self, path, deduction_set, tokenizer='huawei-noah/TinyBERT_General_4L_312D', max_length=128,
+                 intermediate_set=None, clean=False, dataset='lspc', only_interm=False, aug=False):
+
+        self.max_length = max_length
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer, additional_special_tokens=('[COL]', '[VAL]'))
+        self.dataset = dataset
+        self.aug = aug
+
+        # if self.aug:
+        #     logging.warning('AUGMENTATION IS DEACTIVED!')
+        #     self.augmenter = Augmenter(self.aug)
+
+        data = pd.read_pickle(path)
+
+        if dataset == 'abt-buy':
+            data['brand'] = ''
+
+        if dataset == 'amazon-google':
+            data['description'] = ''
+
+        if intermediate_set is not None:
+            interm_data = pd.read_pickle(intermediate_set)
+            if only_interm:
+                data = interm_data
+            else:
+                data = data.append(interm_data)
+
+        data = data.reset_index(drop=True)
+
+        data = data.fillna('')
+        data = self._prepare_data(data)
+
+        self.data = data
+
+    def __getitem__(self, idx):
+        # for every example in batch, return a duplication
+        example = self.data.loc[idx].copy()
+        pos = self.data.loc[idx].copy()
+
+        # apply augmentation if set
+        if self.aug == 'del':
+            # Focus on augmentation through deletion for SimCLR & Barlow Twins
+            example['features'] = delete_random_tokens(example['features'])
+            pos['features'] = delete_random_tokens(pos['features'])
+
+        return example, pos
+
+    def __len__(self):
+        return len(self.data)
+
+    def _prepare_data(self, data):
+
+        if self.dataset == 'lspc':
+            data['features'] = data.apply(serialize_sample_lspc, axis=1)
+
+        elif self.dataset == 'abt-buy':
+            data['features'] = data.apply(serialize_sample_abtbuy, axis=1)
+
+        elif self.dataset == 'amazon-google':
+            data['features'] = data.apply(serialize_sample_amazongoogle, axis=1)
+
+        elif self.dataset == 'dblp-acm':
+            data['features'] = data.apply(serialize_sample_dblpacm, axis=1)
+
+        elif self.dataset == 'dblp-googlescholar':
+            data['features'] = data.apply(serialize_sample_dblpscholar, axis=1)
+
+        elif self.dataset == 'walmart-amazon':
+            data['features'] = data.apply(serialize_sample_walmartamazon, axis=1)
+
+        elif self.dataset == 'wdcproducts80cc20rnd000un':
+            data['features'] = data.apply(serialize_sample_wdcproducts, axis=1)
+
+        elif self.dataset == 'wdcproducts80cc20rnd050un':
+            data['features'] = data.apply(serialize_sample_wdcproducts, axis=1)
+
+        # label_enc = LabelEncoder()
+        # data['labels'] = label_enc.fit_transform(data['cluster_id'])
+        #
+        # self.label_encoder = label_enc
+
+        data = data[['features']]
+
+        return data
+
 
 # Dataset class for Contrastive Pre-training for Abt-Buy and Amazon-Google
 # builds correspondence graph from train+val and builds source-aware sampling datasets
@@ -291,6 +383,8 @@ class ContrastivePretrainDatasetDeepmatcher(torch.utils.data.Dataset):
                 val = pd.read_csv('../../data/interim/walmart-amazon/walmart-amazon-valid.csv')
             elif dataset == 'wdcproducts80cc20rnd050un':
                 val = pd.read_csv('../../data/interim/wdcproducts80cc20rnd050un/wdcproducts80cc20rnd050un-valid.csv')
+            elif dataset == 'wdcproducts80cc20rnd000un':
+                val = pd.read_csv('../../data/interim/wdcproducts80cc20rnd000un/wdcproducts80cc20rnd000un-valid.csv')
 
             # use 80% of train and val set positives to build correspondence graph
             val_set = train_data[train_data['pair_id'].isin(val['pair_id'])]
@@ -363,6 +457,9 @@ class ContrastivePretrainDatasetDeepmatcher(torch.utils.data.Dataset):
                 left_index = [x for x in index if 'walmart' in x]
                 right_index = [x for x in index if 'amazon' in x]
             elif dataset == 'wdcproducts80cc20rnd050un':
+                left_index = [x for x in index if 'tablea' in x]
+                right_index = [x for x in index if 'tableb' in x]
+            elif dataset == 'wdcproducts80cc20rnd000un':
                 left_index = [x for x in index if 'tablea' in x]
                 right_index = [x for x in index if 'tableb' in x]
             
@@ -447,6 +544,12 @@ class ContrastivePretrainDatasetDeepmatcher(torch.utils.data.Dataset):
         self.data1 = data1
         self.data2 = data2
 
+        print(' ')
+        for index, value in data1['features'][:5].iteritems():
+            print(value)
+        print(' ')
+
+
     def __getitem__(self, idx):
         # for every example, sample one positive from the respective sampling dataset
         example1 = self.data1.loc[idx].copy()
@@ -497,6 +600,9 @@ class ContrastivePretrainDatasetDeepmatcher(torch.utils.data.Dataset):
         elif self.dataset == 'wdcproducts80cc20rnd050un':
             data['features'] = data.apply(serialize_sample_wdcproducts, axis=1)
 
+        elif self.dataset == 'wdcproducts80cc20rnd000un':
+            data['features'] = data.apply(serialize_sample_wdcproducts, axis=1)
+
         data = data[['features', 'labels']]
 
         return data
@@ -544,6 +650,8 @@ class ContrastiveClassificationDataset(torch.utils.data.Dataset):
                 validation_ids = pd.read_csv('../../data/interim/walmart-amazon/walmart-amazon-valid.csv')
             elif dataset == 'wdcproducts80cc20rnd050un':
                 validation_ids = pd.read_csv('../../data/interim/wdcproducts80cc20rnd050un/wdcproducts80cc20rnd050un-valid.csv')
+            elif dataset == 'wdcproducts80cc20rnd000un':
+                validation_ids = pd.read_csv('../../data/interim/wdcproducts80cc20rnd000un/wdcproducts80cc20rnd000un-valid.csv')
 
             if self.dataset_type == 'train':
                 data = data[~data['pair_id'].isin(validation_ids['pair_id'])]
@@ -553,6 +661,11 @@ class ContrastiveClassificationDataset(torch.utils.data.Dataset):
         data = data.reset_index(drop=True)
 
         data = self._prepare_data(data)
+
+        print(' ')
+        for index, value in data['features_left'][:5].iteritems():
+            print(value)
+        print(' ')
 
         self.data = data
 
@@ -590,6 +703,9 @@ class ContrastiveClassificationDataset(torch.utils.data.Dataset):
             data['features_left'] = data.apply(self.serialize_sample_walmartamazon, args=('left',), axis=1)
             data['features_right'] = data.apply(self.serialize_sample_walmartamazon, args=('right',), axis=1)
         elif self.dataset == 'wdcproducts80cc20rnd050un':
+            data['features_left'] = data.apply(self.serialize_sample_wdcproduct, args=('left',), axis=1)
+            data['features_right'] = data.apply(self.serialize_sample_wdcproduct, args=('right',), axis=1)
+        elif self.dataset == 'wdcproducts80cc20rnd000un':
             data['features_left'] = data.apply(self.serialize_sample_wdcproduct, args=('left',), axis=1)
             data['features_right'] = data.apply(self.serialize_sample_wdcproduct, args=('right',), axis=1)
 
